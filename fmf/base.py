@@ -170,9 +170,25 @@ class Tree:
         except ValueError:
             raise utils.FormatError("Invalid version format")
 
-    def _merge_plus(self, data, key, value, prepend=False):
+    def _merge_plus(self, data, key, value, prepend=False, process_list=False):
         """ Handle extending attributes using the '+' suffix """
         # Nothing to do if key not in parent
+        if process_list:
+            if not isinstance(data[key], list):
+                raise utils.MergeError(
+                    "MergeError: Key '{0}' in {1} must be a list.".format(
+                        key, self.name))
+            if not isinstance(value, dict):
+                raise utils.MergeError(
+                    "MergeError: Value '{0}' in {1} must be a dictionary.".format(
+                        value, self.name))
+            for list_item in data[key]:
+                if not isinstance(list_item, dict):
+                    "MergeError: Item '{0}' in {1} must be a dictionary.".format(
+                        list_item, self.name)
+                self._merge_special(list_item, value)
+            return
+
         if key not in data:
             data[key] = value
             return
@@ -268,6 +284,8 @@ class Tree:
                 self._merge_plus(data, key.rstrip('+'), value)
             elif key.endswith('+<'):
                 self._merge_plus(data, key.rstrip('+<'), value, prepend=True)
+            elif key.endswith('+*'):
+                self._merge_plus(data, key.rstrip('+*'), value, process_list=True)
             elif key.endswith('-~'):
                 self._merge_minus_regexp(data, key.rstrip('-~'), value)
             elif key.endswith('-'):
